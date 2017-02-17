@@ -19,7 +19,7 @@ class Imagery {
 
     /**
      * @ODM\Field(type="string", name="image_name")
-     *
+     * @ODM\Index(name="imagery_filename")
      * @var string
      */
     private $imageName;
@@ -27,23 +27,49 @@ class Imagery {
     
     /**
      * @ODM\Date
+     * @ODM\Index(name="imagery_ddate")
      */
-    private $created;
+    private $downloaded;
 
     /**
      * @ODM\Date
      */
     private $updated;
 
-    /**
-     * @ODM\Date
-     * @ODM\Index(name="inspectable_lastinspected")
-     */
-    private $lastInspected;
-
     function __construct() {
-        $this->created = new \MongoDate();
     }
     
-    
+    function getId() {
+        return $this->id;
+    }
+
+    function getImageName() {
+        return $this->imageName;
+    }
+
+    function getDownloaded() {
+        return $this->downloaded;
+    }
+
+    function getUpdated() {
+        return $this->updated;
+    }
+
+    function setId($id) {
+        $this->id = $id;
+    }
+
+    function setImageName($imageName) {
+        $this->imageName = $imageName;
+    }
+
+    function setDownloaded($downloaded) {
+        $this->downloaded = $downloaded;
+    }
+
+    function setUpdated($updated) {
+        $this->updated = $updated;
+    }
+
+
 }

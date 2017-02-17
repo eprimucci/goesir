@@ -20,6 +20,7 @@ class DownloadCommand extends ContainerAwareCommand {
 
     /* @var $client S3Client */
     private $client;
+    private $validFiles = []; // 1702170238G13I02.tif is https://goes.gsfc.nasa.gov/goeseast/argentina/ir2/1702070245G13I02.tif
 
     protected function configure() {
         $this
@@ -32,6 +33,17 @@ class DownloadCommand extends ContainerAwareCommand {
 
         $start = date('c');
 
+        $this->dm = $this->getContainer()->get('doctrine_mongodb')->getManager();
+        if ($this->dm == null) {
+            $output->writeln('ERROR: Unable to connect document manager');
+            return;
+        }
+        $output->writeln('**********************************************************');
+        $output->writeln('INFO: Document Manager listo');
+
+//        $this->dm->getSchemaManager()->ensureIndexes();
+//        die();
+        
         // Amazon
 //        $connected=true;
 //        $failMessage='none';
@@ -57,32 +69,46 @@ class DownloadCommand extends ContainerAwareCommand {
         $baseUri = 'https://goes.gsfc.nasa.gov/goeseast/argentina/ir2/';
         $html = $this->getHTML($baseUri);
 
-
-
-
+        // parse files and dates
         $dom = new \DOMDocument();
         $dom->loadHTML($html);
+        $trs = $dom->getElementsByTagName("tr");
+        for ($i = 0; $i < $trs->length; $i++) {
+            $this->parseFileAndDate($trs->item($i)->getElementsbyTagName("td"));
+        }
 
-        $validFiles = []; // 1702170238G13I02.tif is https://goes.gsfc.nasa.gov/goeseast/argentina/ir2/1702070245G13I02.tif
-
-        $rows = $dom->getElementsByTagName("tr");
-        for ($i = 0; $i < $rows->length; $i++) {
-            $cols = $rows->item($i)->getElementsbyTagName("td");
-
-            if ($cols->length > 3) {
-                $file = $cols->item(1)->nodeValue;
-                $date = $cols->item(2)->nodeValue;
-                if(StringHelper::endsWith($file, '.tif') && strlen($file)==20) {
-                    
-                    
-                    
-                    $validFiles[]=array('file'=>$file, 'date'=>  date_parse($date));
-                }
+        foreach ($this->validFiles as $validFile) {
+            /* @var $imagery Imagery */
+            $imagery = $this->dm->getRepository('AppBundle:Imagery')->getByFilenameAndDate($validFile->file, $validFile->date);
+            if ($imagery == null) {
+                $output->writeln('INFO: agregando archivo ' . $validFile->file);
+                $im=new Imagery();
+                $im->setDownloaded($validFile->date);
+                $im->setImageName($validFile->file);
+                $this->dm->persist($im);
+            }
+            else {
+                $output->writeln('INFO: salteando ' . $validFile->file);
             }
         }
-        var_dump($validFiles);
-        
+
+        $this->dm->flush();
+
         $output->writeln('**********************************************************');
+    }
+
+    private function parseFileAndDate($tds) {
+        if ($tds->length > 3) {
+            $file = $tds->item(1)->nodeValue;
+            $date = $tds->item(2)->nodeValue;
+            if (StringHelper::endsWith($file, '.tif') && strlen($file) == 20) {
+                $parseDate = new \DateTime($date);
+                $obj = new \stdClass();
+                $obj->file = $file;
+                $obj->date = new \MongoDate($parseDate->getTimestamp());
+                $this->validFiles[] = $obj;
+            }
+        }
     }
 
     private function getHTML($baseUri) {
