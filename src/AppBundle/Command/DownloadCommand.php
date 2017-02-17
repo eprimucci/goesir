@@ -114,13 +114,21 @@ class DownloadCommand extends ContainerAwareCommand {
             // Copy the remote file to our Amazon S3 bucket
             try {
                 $result = $this->putRemote($imagery, $localStorage);
-                $output->writeln(' OK. '.$result['filesize'].' bytes.');
-                $this->dm->persist($imagery);
-                $imagery->setDownloadDate(new \MongoDate());
-                $imagery->setStored(true);
-                $imagery->setStorage($result['ObjectURL']);
-                $imagery->setFileSize($result['filesize']);
-                $this->dm->flush();
+                
+                // partial files...
+                
+                if($result['filesize']<100000) {
+                    $output->writeln(' WARNING: '.$result['filesize'].' bytes. Will re-download during next run.');
+                }
+                else {
+                    $output->writeln(' OK. '.$result['filesize'].' bytes.');
+                    $this->dm->persist($imagery);
+                    $imagery->setDownloadDate(new \MongoDate());
+                    $imagery->setStored(true);
+                    $imagery->setStorage($result['ObjectURL']);
+                    $imagery->setFileSize($result['filesize']);
+                    $this->dm->flush();
+                }
             } catch (\Exception $ex) {
                 $output->writeln('ERROR: ' . $ex->getMessage());
             }
