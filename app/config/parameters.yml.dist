@@ -6,6 +6,10 @@ parameters:
     locale:            en
     default_locale:    en
     secret:            ThisTokenIsNotSoSecretChangeIt
+    mailer_transport: gmail
+    mailer_host: null
+    mailer_user: ~
+    mailer_password: ~
 
     # AMAZON
     amazon_s3.key: s3key

@@ -39,16 +39,16 @@ twig:
     debug:            "%kernel.debug%"
     strict_variables: "%kernel.debug%"
 
-#doctrine_mongodb:
-#    connections:
-#        default:
-#            server: '%mongodb_uri%'
-#            options: {}
-#    default_database: '%mongodb_db%'
-#    document_managers:
-#        default:
-#            mappings: 
-#                AppBundle: ~
+doctrine_mongodb:
+    connections:
+        default:
+            server: '%mongodb_uri%'
+            options: {}
+    default_database: '%mongodb_db%'
+    document_managers:
+        default:
+            mappings: 
+                AppBundle: ~
 
 
 
