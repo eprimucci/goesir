@@ -3,7 +3,6 @@
 namespace AppBundle\Document;
 
 use Doctrine\ODM\MongoDB\Mapping\Annotations as ODM;
-use Doctrine\Common\Collections\ArrayCollection;
 
 /**
  * @ODM\Document(
@@ -31,34 +30,57 @@ class Imagery {
     private $storage;
     
     /**
+     * MongoDate parsed from $originalDate
      * @ODM\Date
      * @ODM\Index(name="imagery_dated")
      */
     private $dated;
 
     /**
+     * String at the GOES archive website. Then parsed into MongoDate and stored in field $dated
      * @ODM\Field(type="string", name="sdated")
      * @ODM\Index(name="imagery_sdated")
      * @var string
      */
     private $originalDate;
 
+    /**
+     * Date of the actual storage in S3
+     * @ODM\Date
+     * @ODM\Index(name="imagery_download_date")
+     */
+    private $downloadDate;
+
     
     /**
-     * @ODM\Date
-     * @ODM\Index(name="imagery_downloaded")
-     */
-    private $downloaded;
-
-    /**
+     * When was this document updated
      * @ODM\Date
      */
     private $updated;
-
-    function __construct() {
-    }
+    
+    
+    /**
+     * @ODM\Boolean
+     * @ODM\Index(name="imagery_stored")
+     */
+    private $stored;
+    
+    
+    /**
+     * @ODM\Boolean
+     * @ODM\Index(name="imagery_analyzed")
+     */
+    private $analyzed;
     
 
+    
+
+    function __construct() {
+        $this->stored=false;
+        $this->analyzed=false;
+    }
+    
+    
     function getId() {
         return $this->id;
     }
@@ -79,12 +101,20 @@ class Imagery {
         return $this->originalDate;
     }
 
-    function getDownloaded() {
-        return $this->downloaded;
+    function getDownloadDate() {
+        return $this->downloadDate;
     }
 
     function getUpdated() {
         return $this->updated;
+    }
+
+    function getStored() {
+        return $this->stored;
+    }
+
+    function getAnalyzed() {
+        return $this->analyzed;
     }
 
     function setId($id) {
@@ -107,14 +137,22 @@ class Imagery {
         $this->originalDate = $originalDate;
     }
 
-    function setDownloaded($downloaded) {
-        $this->downloaded = $downloaded;
+    function setDownloadDate($downloadDate) {
+        $this->downloadDate = $downloadDate;
     }
 
     function setUpdated($updated) {
         $this->updated = $updated;
     }
 
+    function setStored($stored) {
+        $this->stored = $stored;
+    }
 
-    
+    function setAnalyzed($analyzed) {
+        $this->analyzed = $analyzed;
+    }
+
+
+        
 }

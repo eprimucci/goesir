@@ -21,6 +21,9 @@ class DownloadCommand extends ContainerAwareCommand {
     /* @var $client S3Client */
     private $client;
     private $validFiles = []; // 1702170238G13I02.tif is https://goes.gsfc.nasa.gov/goeseast/argentina/ir2/1702070245G13I02.tif
+    
+    CONST GOES_BASE = 'https://goes.gsfc.nasa.gov';
+    const GOES_FOLDER = '/goeseast/argentina/ir2/';
 
     protected function configure() {
         $this
@@ -64,8 +67,7 @@ class DownloadCommand extends ContainerAwareCommand {
 //        }
         // create http client instance
 
-        $baseUri = 'https://goes.gsfc.nasa.gov/goeseast/argentina/ir2/';
-        $html = $this->getHTML($baseUri);
+        $html = $this->getHTML();
 
         // parse files and dates
         $dom = new \DOMDocument();
@@ -74,29 +76,72 @@ class DownloadCommand extends ContainerAwareCommand {
         for ($i = 0; $i < $trs->length; $i++) {
             $this->parseFileAndDate($trs->item($i)->getElementsbyTagName("td"));
         }
+        
+        // check for new files
+        $persist=$this->persistNewFiles();
+        $output->writeln('INFO: Stored metadata files for download: '.count($persist['stored']));
+        foreach($persist['stored'] as $stored) {
+            $output->writeln('INFO: '.$stored->file.' '.$stored->dateoriginal);
+        }
+        $output->writeln('INFO: Skipped files: '.count($persist['skipped']));
 
+        
+        // now download the pending ones and store them in amazon
+        $pending = $this->dm->getRepository('AppBundle:Imagery')->getDownloadPending();
+
+        
+        $output->writeln('INFO: Download pending files: ');
+        /* @var $imagery Imagery */
+        foreach($pending as $imagery) {
+            $output->writeln($imagery->getImageName());
+        }
+        
+        $this->dm->flush();
+        
+        
+        $output->writeln('**********************************************************');
+    }
+
+    
+    
+    
+    
+
+
+    /**
+     * Persists for later download (queue) verifying we do not already have the same file in the db
+     * @return array with results
+     */
+    private function persistNewFiles() {
+        $stored=[]; $skipped=[];
         foreach ($this->validFiles as $validFile) {
             /* @var $imagery Imagery */
             $imagery = $this->dm->getRepository('AppBundle:Imagery')->getByFilenameAndDate($validFile->file, $validFile->date);
             if ($imagery == null) {
-                $output->writeln('INFO: agregando archivo ' . $validFile->file.' fecha: '.$validFile->date);
+                $stored[]=$validFile;
                 $im=new Imagery();
-                $im->setDownloaded(new \MongoDate());
                 $im->setDated($validFile->date);
                 $im->setImageName($validFile->file);
                 $im->setOriginalDate($validFile->dateoriginal);
                 $this->dm->persist($im);
             }
             else {
-                $output->writeln('INFO: salteando ' . $validFile->file.' fecha: '.$validFile->date);
+                $skipped[]=$validFile;
             }
         }
-
         $this->dm->flush();
-
-        $output->writeln('**********************************************************');
+        return array('stored'=>$stored, 'skipped'=>$skipped);
     }
-
+    
+    
+    
+    
+    
+    
+    /**
+     * Parses the file info from the TRs on the GOES listing table
+     * @param DOMElementlist $tds
+     */
     private function parseFileAndDate($tds) {
         if ($tds->length > 3) {
             $file = $tds->item(1)->nodeValue;
@@ -112,7 +157,7 @@ class DownloadCommand extends ContainerAwareCommand {
         }
     }
 
-    private function getHTML($baseUri) {
+    private function getHTML() {
 
         $html = <<<EOT
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
@@ -585,8 +630,8 @@ EOT;
 
 
         // produtcion:
-//        $guzzleClient = new Client(array('base_uri'=>'https://goes.gsfc.nasa.gov'));
-//        $response = $guzzleClient->get('/goeseast/argentina/ir2/');
+//        $guzzleClient = new Client(array('base_uri'=>GOES_BASE));
+//        $response = $guzzleClient->get(GOES_FOLDER);
 //        $html = $response->getBody()->getContents();
 
 
