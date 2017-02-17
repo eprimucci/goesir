@@ -9,10 +9,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use AppBundle\Document\Imagery,
     AppBundle\Helper\StringHelper;
 use Aws\S3\S3Client;
-use Doctrine\Common\Collections\ArrayCollection;
 use GuzzleHttp\Client;
-use Symfony\Component\DomCrawler\Crawler;
-use RuntimeException;
 
 class DownloadCommand extends ContainerAwareCommand {
 
