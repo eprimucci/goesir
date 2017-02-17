@@ -24,10 +24,29 @@ class Imagery {
      */
     private $imageName;
     
+    /**
+     * @ODM\Field(type="string")
+     * @var string
+     */
+    private $storage;
     
     /**
      * @ODM\Date
-     * @ODM\Index(name="imagery_ddate")
+     * @ODM\Index(name="imagery_dated")
+     */
+    private $dated;
+
+    /**
+     * @ODM\Field(type="string", name="sdated")
+     * @ODM\Index(name="imagery_sdated")
+     * @var string
+     */
+    private $originalDate;
+
+    
+    /**
+     * @ODM\Date
+     * @ODM\Index(name="imagery_downloaded")
      */
     private $downloaded;
 
@@ -39,12 +58,25 @@ class Imagery {
     function __construct() {
     }
     
+
     function getId() {
         return $this->id;
     }
 
     function getImageName() {
         return $this->imageName;
+    }
+
+    function getStorage() {
+        return $this->storage;
+    }
+
+    function getDated() {
+        return $this->dated;
+    }
+
+    function getOriginalDate() {
+        return $this->originalDate;
     }
 
     function getDownloaded() {
@@ -63,6 +95,18 @@ class Imagery {
         $this->imageName = $imageName;
     }
 
+    function setStorage($storage) {
+        $this->storage = $storage;
+    }
+
+    function setDated($dated) {
+        $this->dated = $dated;
+    }
+
+    function setOriginalDate($originalDate) {
+        $this->originalDate = $originalDate;
+    }
+
     function setDownloaded($downloaded) {
         $this->downloaded = $downloaded;
     }
@@ -72,4 +116,5 @@ class Imagery {
     }
 
 
+    
 }

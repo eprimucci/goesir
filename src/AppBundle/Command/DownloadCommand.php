@@ -41,9 +41,7 @@ class DownloadCommand extends ContainerAwareCommand {
         $output->writeln('**********************************************************');
         $output->writeln('INFO: Document Manager listo');
 
-//        $this->dm->getSchemaManager()->ensureIndexes();
-//        die();
-        
+
         // Amazon
 //        $connected=true;
 //        $failMessage='none';
@@ -81,14 +79,16 @@ class DownloadCommand extends ContainerAwareCommand {
             /* @var $imagery Imagery */
             $imagery = $this->dm->getRepository('AppBundle:Imagery')->getByFilenameAndDate($validFile->file, $validFile->date);
             if ($imagery == null) {
-                $output->writeln('INFO: agregando archivo ' . $validFile->file);
+                $output->writeln('INFO: agregando archivo ' . $validFile->file.' fecha: '.$validFile->date);
                 $im=new Imagery();
-                $im->setDownloaded($validFile->date);
+                $im->setDownloaded(new \MongoDate());
+                $im->setDated($validFile->date);
                 $im->setImageName($validFile->file);
+                $im->setOriginalDate($validFile->dateoriginal);
                 $this->dm->persist($im);
             }
             else {
-                $output->writeln('INFO: salteando ' . $validFile->file);
+                $output->writeln('INFO: salteando ' . $validFile->file.' fecha: '.$validFile->date);
             }
         }
 
@@ -106,6 +106,7 @@ class DownloadCommand extends ContainerAwareCommand {
                 $obj = new \stdClass();
                 $obj->file = $file;
                 $obj->date = new \MongoDate($parseDate->getTimestamp());
+                $obj->dateoriginal = $date;
                 $this->validFiles[] = $obj;
             }
         }

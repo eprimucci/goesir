@@ -8,8 +8,8 @@ class ImageryRepository extends BaseRepository {
 
         $qb = $this->createQueryBuilder();
 
-        $qb->field('fileName')->equals($fileName);
-        $qb->field('downloadDate')->equals($date);
+        $qb->field('image_name')->equals($fileName);
+        $qb->field('dated')->equals($date);
 
         return $qb->getQuery()->getSingleResult();
     }
