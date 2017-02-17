@@ -17,5 +17,12 @@ class ImageryRepository extends BaseRepository {
         $qb->field('stored')->equals(false);
         return $qb->getQuery()->execute();
     }
+    
+    public function getAnalysysPending() {
+        $qb = $this->createQueryBuilder();
+        $qb->field('stored')->equals(true);
+        $qb->field('analyzed')->equals(false);
+        return $qb->getQuery()->execute();
+    }
 
 }
