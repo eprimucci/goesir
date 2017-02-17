@@ -28,7 +28,8 @@
         "sensio/distribution-bundle": "^5.0",
         "sensio/framework-extra-bundle": "^3.0.2",
         "incenteev/composer-parameter-handler": "^2.0",
-        "twig/twig": "^1.0||^2.0"
+        "twig/twig": "^1.0||^2.0",
+        "aws/aws-sdk-php": "^3.22"
     },
     "require-dev": {
         "sensio/generator-bundle": "^3.0",
@@ -58,7 +59,20 @@
         "symfony-tests-dir": "tests",
         "symfony-assets-install": "relative",
         "incenteev-parameters": {
-            "file": "app/config/parameters.yml"
+            "file": "app/config/parameters.yml",
+            "env-map": {
+                "mongodb_uri": "MONGODB_URI",
+                "mongodb_db": "MONGODB_DB",
+                "assets.version": "ASSETS_VERSION",
+                "assets.baseurl": "ASSETS_BASEURL",
+                "locale": "SYMFONY_LOCALE",
+                "secret": "SYMFONY_SECRET",
+                "amazon_s3.key": "AMAZON_KEY",
+                "amazon_s3.secret": "AMAZON_SECRET",
+                "amazon_s3.region": "AMAZON_REGION",
+                "amazon_s3.media_bucket": "AMAZON_MEDIABUCKET"
+            }
+
         },
         "branch-alias": null
     }
