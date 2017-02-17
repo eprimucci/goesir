@@ -33,6 +33,7 @@ class Imagery {
      * MongoDate parsed from $originalDate
      * @ODM\Date
      * @ODM\Index(name="imagery_dated")
+     * @var $dated \MongoDate
      */
     private $dated;
 
@@ -73,7 +74,13 @@ class Imagery {
     private $analyzed;
     
 
-    
+    /**
+     * 
+     * @ODM\Field(type="int", name="fsize")
+     * @ODM\Index(name="imagery_fsize")
+     * @var string
+     */
+    private $fileSize;    
 
     function __construct() {
         $this->stored=false;
@@ -117,6 +124,10 @@ class Imagery {
         return $this->analyzed;
     }
 
+    function getFileSize() {
+        return $this->fileSize;
+    }
+
     function setId($id) {
         $this->id = $id;
     }
@@ -153,6 +164,12 @@ class Imagery {
         $this->analyzed = $analyzed;
     }
 
+    function setFileSize($fileSize) {
+        $this->fileSize = $fileSize;
+    }
 
+
+    
+    
         
 }
