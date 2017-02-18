@@ -33,7 +33,7 @@ class Imagery {
      * MongoDate parsed from $originalDate
      * @ODM\Date
      * @ODM\Index(name="imagery_dated")
-     * @var $dated \MongoDate
+     * @var $dated \DateTime
      */
     private $dated;
 
@@ -49,6 +49,7 @@ class Imagery {
      * Date of the actual storage in S3
      * @ODM\Date
      * @ODM\Index(name="imagery_download_date")
+     * @var $downloadDate \DateTime
      */
     private $downloadDate;
 
@@ -56,6 +57,7 @@ class Imagery {
     /**
      * When was this document updated
      * @ODM\Date
+     * @var $updated \DateTime
      */
     private $updated;
     
@@ -78,7 +80,7 @@ class Imagery {
      * 
      * @ODM\Field(type="int", name="fsize")
      * @ODM\Index(name="imagery_fsize")
-     * @var string
+     * @var int
      */
     private $fileSize;    
 
@@ -88,86 +90,95 @@ class Imagery {
     }
     
     
-    function getId() {
+    public function getId() {
         return $this->id;
     }
 
-    function getImageName() {
+    public function getImageName() {
         return $this->imageName;
     }
 
-    function getStorage() {
+    public function getStorage() {
         return $this->storage;
     }
 
-    function getDated() {
+    public function getDated() {
         return $this->dated;
     }
 
-    function getOriginalDate() {
+    public function getOriginalDate() {
         return $this->originalDate;
     }
 
-    function getDownloadDate() {
+    public function getDownloadDate() {
         return $this->downloadDate;
     }
 
-    function getUpdated() {
+    public function getUpdated() {
         return $this->updated;
     }
 
-    function getStored() {
+    public function getStored() {
         return $this->stored;
     }
 
-    function getAnalyzed() {
+    public function getAnalyzed() {
         return $this->analyzed;
     }
 
-    function getFileSize() {
+    public function getFileSize() {
         return $this->fileSize;
     }
 
-    function setId($id) {
+    public function setId($id) {
         $this->id = $id;
+        return $this;
     }
 
-    function setImageName($imageName) {
+    public function setImageName($imageName) {
         $this->imageName = $imageName;
+        return $this;
     }
 
-    function setStorage($storage) {
+    public function setStorage($storage) {
         $this->storage = $storage;
+        return $this;
     }
 
-    function setDated($dated) {
+    public function setDated($dated) {
         $this->dated = $dated;
+        return $this;
     }
 
-    function setOriginalDate($originalDate) {
+    public function setOriginalDate($originalDate) {
         $this->originalDate = $originalDate;
+        return $this;
     }
 
-    function setDownloadDate($downloadDate) {
+    public function setDownloadDate($downloadDate) {
         $this->downloadDate = $downloadDate;
+        return $this;
     }
 
-    function setUpdated($updated) {
+    public function setUpdated($updated) {
         $this->updated = $updated;
+        return $this;
     }
 
-    function setStored($stored) {
+    public function setStored($stored) {
         $this->stored = $stored;
+        return $this;
     }
 
-    function setAnalyzed($analyzed) {
+    public function setAnalyzed($analyzed) {
         $this->analyzed = $analyzed;
+        return $this;
     }
 
-    function setFileSize($fileSize) {
+    public function setFileSize($fileSize) {
         $this->fileSize = $fileSize;
+        return $this;
     }
-
 
     
     

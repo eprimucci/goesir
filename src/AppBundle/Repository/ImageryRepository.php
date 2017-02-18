@@ -19,9 +19,11 @@ class ImageryRepository extends BaseRepository {
     }
     
     public function getAnalysysPending() {
-        $qb = $this->createQueryBuilder();
-        $qb->field('stored')->equals(true);
-        $qb->field('analyzed')->equals(false);
+        $qb = $this->createQueryBuilder()
+                ->select('id','sdated','image_name','dated')
+                ->field('stored')->equals(true)
+                ->field('analyzed')->equals(false)
+                ->sort('sdated');
         return $qb->getQuery()->execute();
     }
 

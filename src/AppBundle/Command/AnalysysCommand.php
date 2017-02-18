@@ -7,7 +7,8 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use AppBundle\Document\Imagery,
-    AppBundle\Document\Analysys,
+    AppBundle\Document\Pixel,
+    AppBundle\Document\PixelData,
     AppBundle\Helper\StringHelper;
 use Aws\S3\S3Client;
 use GuzzleHttp\Client;
@@ -31,6 +32,8 @@ class AnalysysCommand extends ContainerAwareCommand {
         $this
                 ->setName('goesir:analysys:brightness')
                 ->setDescription('Calculatres brightness of every pixel in the image')
+                ->addArgument('x', InputArgument::REQUIRED, 'X coordinate')
+                ->addArgument('y', InputArgument::REQUIRED, 'Y coordinate')
                 ->addArgument('localstorage', InputArgument::OPTIONAL, 'Optional local storage folder');
     }
 
@@ -49,6 +52,15 @@ class AnalysysCommand extends ContainerAwareCommand {
             return;
         }
         $output->writeln('INFO: Document Manager listo');
+
+        $coordX = $input->getArgument('x');
+        $coordY = $input->getArgument('y');
+        if ($coordX < 0 || $coordX > 999 || $coordY < 0 || $coordY > 599) {
+            $output->writeln('ERROR: Coordinates out of bounds (X=>0-999 Y=>0-599)');
+            $output->writeln('********************* END *******************************');
+            return;
+        }
+
 
         $localStorage = $input->getArgument('localstorage');
         if ($localStorage != null) {
@@ -72,7 +84,8 @@ class AnalysysCommand extends ContainerAwareCommand {
                                 ),
                                 'version' => 'latest'
             ));
-        } catch (\Exception $e) {
+        } 
+        catch (\Exception $e) {
             $failMessage = $e->getMessage();
             $connected = false;
         }
@@ -82,65 +95,64 @@ class AnalysysCommand extends ContainerAwareCommand {
             return;
         }
 
-        // now download the pending ones and store them in amazon
-        $pending = $this->dm->getRepository('AppBundle:Imagery')->getAnalysysPending();
+        $pixel = $this->dm->getRepository('AppBundle:Pixel')->getByCoordinates($coordX, $coordY);
+        if ($pixel == null) {
+            $pixel = new Pixel();
+            $pixel->setPixelx($coordX);
+            $pixel->setPixely($coordY);
+            $this->dm->persist($pixel);
+            $this->dm->flush();
+        }
 
+        // get available images
+        $availableImagery = $this->dm->getRepository('AppBundle:Imagery')->getAnalysysPending();
 
-        $output->writeln('INFO: Performing brightness analysis.');
-        $sampleo=[];
-        
+        $output->writeln("INFO: Performing brightness analysis for {$coordX},{$coordY}");
+
         /* @var $imagery Imagery */
-        foreach ($pending as $imagery) {
+        foreach ($availableImagery as $imagery) {
+
+            if ($pixel->hasImagery($imagery->getId())) {
+                continue;
+            }
+
+            $output->writeln("INFO: Imagery name:{$imagery->getImageName()} odate:{$imagery->getOriginalDate()} id:{$imagery->getId()}");
+            
             // load the image
             $image = $this->getImagickFromDocument($imagery, $localStorage);
 
-            // get array for brighntesses
-            $width = $image->getImageWidth();
-            $height = $image->getImageHeight();
+            $imagickPixelData = $image->getImagePixelColor($coordX, $coordY);
+            $data = $this->formatPixelValues($imagickPixelData);
+            $rgb = (65536 * $data['colors']['r'] + 256 * $data['colors']['g'] + $data['colors']['b']);
 
-            //$output->writeln('INFO: File ' . $imagery->getImageName() . "width: {$width} height: {$height}");
-            $pixel = $image->getImagePixelColor(512, 331);
-            $data = $this->formatPixelValues($pixel);
-            $rgb=(65536 * $data['colors']['r'] + 256 * $data['colors']['g'] + $data['colors']['b']);
-            $sampleo[]=$rgb;
-            //$output->writeln('INFO: File ' . $imagery->getImageName() . "val: {$rgb}");
-            $output->writeln($rgb);
-
-//            for ($x = 0; $x < $width; $x++) {
-//                for ($y = 0; $y < $height; $y++) {
-//                    /* @var $pixel \ImagickPixel */
-//                    $pixel = $image->getImagePixelColor($x, $y);
-//                    $data = $this->formatPixelValues($pixel);
-//                    $a = new Analysys();
-//                    $a->setImagery($imagery);
-//                    $a->setPxred($data['colors']['r']);
-//                    $a->setPxgreen($data['colors']['g']);
-//                    $a->setPxblue($data['colors']['b']);
-//                    $a->setAlpha($data['colors']['a']);
-//                    $a->setPxrednormal($data['red']);
-//                    $a->setPxgreennormal($data['green']);
-//                    $a->setPxbluenormal($data['blue']);
-//                    $a->setPxcyan($data['cyan']);
-//                    $a->setPxmagenta($data['magenta']);
-//                    $a->setPxyellow($data['yellow']);
-//                    $a->setPxblack($data['black']);
-//                    $a->setPxtotal(65536 * $data['colors']['r'] + 256 * $data['colors']['g'] + $data['colors']['b']);
-//                    $a->setPixelx($x);
-//                    $a->setPixely($y);
-//                    
-//                    if($x==512 && $y==331) {
-//                        $sampleo[]=$a->getPxtotal();
-//                    }
-//                    
-//                    //$this->dm->persist($a);
-//                }
-//                $output->write(" {$x}");
-//            }
-//            //$imagery->setAnalyzed(true);
-//            $this->dm->flush();
+            
+            
+            $pixelData = new PixelData();
+            $pixelData->setImageryid($imagery->getId());
+            $pixelData->setPxred($data['colors']['r']);
+            $pixelData->setPxgreen($data['colors']['g']);
+            $pixelData->setPxblue($data['colors']['b']);
+            $pixelData->setAlpha($data['colors']['a']);
+            $pixelData->setPxrednormal($data['red']);
+            $pixelData->setPxgreennormal($data['green']);
+            $pixelData->setPxbluenormal($data['blue']);
+            $pixelData->setPxcyan($data['cyan']);
+            $pixelData->setPxmagenta($data['magenta']);
+            $pixelData->setPxyellow($data['yellow']);
+            $pixelData->setPxblack($data['black']);
+            $pixelData->setPxtotal($rgb);
+            $pixelData->setTs($imagery->getDated()->getTimestamp());
+            $pixel->addPixelData($pixelData);
         }
-        //$this->dm->flush();
-        $output->writeln(json_encode($sampleo));
+        
+        $this->dm->flush();
+        
+        /* @var $existingPixelData PixelData */
+        foreach($pixel->getPixeldatum() as $existingPixelData) {
+            $date = new \DateTime();
+            $date->setTimestamp($existingPixelData->getTs());
+            $output->writeln($existingPixelData->getPxtotal().','.$existingPixelData->getTs().',"'.$date->format('Y-m-d H:i:s').'"');
+        }
         $output->writeln('********************* END *******************************');
     }
 

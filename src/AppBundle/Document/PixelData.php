@@ -4,47 +4,16 @@ namespace AppBundle\Document;
 
 use Doctrine\ODM\MongoDB\Mapping\Annotations as ODM;
 
+
 /**
- * @ODM\Document(
- * collection="analysys", 
- * repositoryClass="AppBundle\Repository\AnalysysRepository")
+ * @ODM\EmbeddedDocument
  */
-class Analysys {
+class PixelData {
 
     /**
-     * @ODM\Id
+     * @ODM\Field(type="string")
      */
-    private $id;
-
-    /**
-     * @ODM\ReferenceOne(targetDocument="Imagery")
-     * @ODM\Index(name="analysys_imagery")
-     * @var $imager Imagery
-     */
-    private $imagery;
-
-    
-    /**
-     * @ODM\Field(type="int")
-     * @ODM\Index(name="analysys_y")
-     */
-    private $pixely;
-
-    /**
-     * @ODM\Field(type="int")
-     * @ODM\Index(name="analysys_x")
-     */
-    private $pixelx;
-    
-    
-    /**
-     * MongoDate parsed from $originalDate
-     * @ODM\Date
-     * @ODM\Index(name="analysys_when")
-     * @var $dated \MongoDate
-     */
-    private $when;
-
+    private $imageryid;
     
     /**
      * @ODM\Field(type="int")
@@ -105,31 +74,14 @@ class Analysys {
      * @ODM\Field(type="float")
      */
     private $pxtotal;
-
     
+    /**
+     * @ODM\Field(type="int")
+     */
+    private $ts;
     
-    function __construct() {
-        $this->when=new \MongoDate();
-    }
-    
-    function getId() {
-        return $this->id;
-    }
-
-    function getImagery() {
-        return $this->imagery;
-    }
-
-    function getPixely() {
-        return $this->pixely;
-    }
-
-    function getPixelx() {
-        return $this->pixelx;
-    }
-
-    function getWhen() {
-        return $this->when;
+    function getImageryid() {
+        return $this->imageryid;
     }
 
     function getPxred() {
@@ -180,24 +132,12 @@ class Analysys {
         return $this->pxtotal;
     }
 
-    function setId($id) {
-        $this->id = $id;
+    function getTs() {
+        return $this->ts;
     }
 
-    function setImagery($imagery) {
-        $this->imagery = $imagery;
-    }
-
-    function setPixely($pixely) {
-        $this->pixely = $pixely;
-    }
-
-    function setPixelx($pixelx) {
-        $this->pixelx = $pixelx;
-    }
-
-    function setWhen($when) {
-        $this->when = $when;
+    function setImageryid($imageryid) {
+        $this->imageryid = $imageryid;
     }
 
     function setPxred($pxred) {
@@ -248,6 +188,11 @@ class Analysys {
         $this->pxtotal = $pxtotal;
     }
 
-        
-        
+    function setTs($ts) {
+        $this->ts = $ts;
+    }
+
+
+
+
 }

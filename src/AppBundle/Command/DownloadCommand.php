@@ -125,7 +125,7 @@ class DownloadCommand extends ContainerAwareCommand {
 
         /* @var $file Imagery */
         foreach ($stored as $file) {
-            $output->writeln('INFO: ' . $file->getImageName() . ' ' . $file->getOriginalDate());
+            $output->writeln('INFO: NEW FILE ' . $file->getImageName() . ' ' . $file->getOriginalDate());
         }
         $output->writeln('INFO: Skipped files: ' . count($skipped));
 
@@ -136,7 +136,14 @@ class DownloadCommand extends ContainerAwareCommand {
         $output->writeln('INFO: Download pending files: ');
 
 
-
+        // hydrate all the results!!!!
+        
+        foreach ($pending as $imagery) {
+            $output->writeln('INFO: Pending file: '.$imagery->getImageName().' '.$imagery->getOriginalDate().' '.$imagery->getId());
+        }
+        
+        
+        
         /*********************************
          *      LOOP THRU PENDING
          *********************************/
