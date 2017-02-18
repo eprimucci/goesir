@@ -24,21 +24,25 @@ class DownloadCommand extends ContainerAwareCommand {
     const S3_BUCKET = 'goesir';
     const S3_FOLDER = 'raw';
 
+    
     protected function configure() {
-        $this
-                ->setName('goesir:daily:download')
-                ->setDescription('')
+        $this->setName('goesir:daily:download')
+                ->setDescription('Download new files from GOES')
                 ->addArgument('localstorage', InputArgument::OPTIONAL, 'Optional local storage folder');
     }
 
+
+    
+    
     protected function execute(InputInterface $input, OutputInterface $output) {
 
         $start = date('c');
-
         $output->writeln('********************* START *****************************');
         $output->writeln('INFO: started ' . $start);
 
-
+        /***************************************
+         *       MONGODB DOCUMENT MANAGER
+         ***************************************/
         $this->dm = $this->getContainer()->get('doctrine_mongodb')->getManager();
         if ($this->dm == null) {
             $output->writeln('ERROR: Unable to connect document manager');
@@ -47,6 +51,11 @@ class DownloadCommand extends ContainerAwareCommand {
         }
         $output->writeln('INFO: Document Manager listo');
 
+
+
+        /******************************************
+         * LOCAL STORAGE IN CASE IT IS NEEDED
+         ******************************************/
         $localStorage = $input->getArgument('localstorage');
         if ($localStorage != null) {
             if (!is_writable($localStorage)) {
@@ -56,7 +65,9 @@ class DownloadCommand extends ContainerAwareCommand {
             }
         }
 
-        // Amazon
+        /******************************************
+         *         AMAZON S3 CLIENT
+         ******************************************/
         $connected = true;
         $failMessage = 'none';
         try {
@@ -79,6 +90,8 @@ class DownloadCommand extends ContainerAwareCommand {
             return;
         }
 
+
+
         // load the raw HTML from GOES website
         $html = $this->getHTML();
 
@@ -91,53 +104,114 @@ class DownloadCommand extends ContainerAwareCommand {
         }
 
         // check for new files
-        $persist = $this->persistNewFiles();
-        $output->writeln('INFO: Stored metadata files for download: ' . count($persist['stored']));
-        foreach ($persist['stored'] as $stored) {
-            $output->writeln('INFO: ' . $stored->file . ' ' . $stored->dateoriginal);
+        $stored = [];
+        $skipped = [];
+        foreach ($this->validFiles as $validFile) {
+            /* @var $imagery Imagery */
+            $imagery = $this->dm->getRepository('AppBundle:Imagery')->getByFilenameAndDate($validFile->file, $validFile->date);
+            if ($imagery == null) {
+                $im = new Imagery();
+                $im->setDated($validFile->date);
+                $im->setImageName($validFile->file);
+                $im->setOriginalDate($validFile->dateoriginal);
+                $this->dm->persist($im);
+                $stored[]=$im;
+            } else {
+                $skipped[] = $validFile;
+            }
         }
-        $output->writeln('INFO: Skipped files: ' . count($persist['skipped']));
+        $this->dm->flush();
+        $output->writeln('INFO: New metadata files for download: ' . count($stored));
+
+        /* @var $file Imagery */
+        foreach ($stored as $file) {
+            $output->writeln('INFO: ' . $file->getImageName() . ' ' . $file->getOriginalDate());
+        }
+        $output->writeln('INFO: Skipped files: ' . count($skipped));
 
 
         // now download the pending ones and store them in amazon
         $pending = $this->dm->getRepository('AppBundle:Imagery')->getDownloadPending();
 
-
         $output->writeln('INFO: Download pending files: ');
+
+
+
+        /*********************************
+         *      LOOP THRU PENDING
+         *********************************/
         /* @var $imagery Imagery */
         foreach ($pending as $imagery) {
-            $output->write('INFO: Start copying ' . $imagery->getImageName());
 
+            $this->dm->persist($imagery);
+
+            $output->write('INFO: Start copying ' . $imagery->getImageName() . ' ' . $imagery->getOriginalDate());
+
+            $key = self::S3_FOLDER . '/' . $imagery->getImageName();
+            $URL = self::GOES_BASE . self::GOES_FOLDER . $imagery->getImageName();
+            $body = $this->curl_get_file_contents($URL);
+
+            if ($body === FALSE) {
+                // unable to read from URL
+                $output->writeln('ERROR: unable to download from GOES');
+                continue;
+            }
+            if ($body === 404) {
+                // remove this, not found
+                $this->dm->remove($imagery);
+                $this->dm->flush($imagery);
+                $output->writeln('ERROR: file not found. Removing.');
+                continue;
+            }
+            if (strlen($body) < 100000) {
+                // remove this, file truncated
+                $this->dm->remove($imagery);
+                $this->dm->flush($imagery);
+                $output->writeln('ERROR: file too small. Removing.');
+                continue;
+            }
+
+            
             // Copy the remote file to our Amazon S3 bucket
             try {
-                $result = $this->putRemote($imagery, $localStorage);
-                
-                // partial files...
-                
-                if($result['filesize']<100000) {
-                    $output->writeln(' WARNING: '.$result['filesize'].' bytes. Will re-download during next run.');
+                if ($localStorage != null) {
+                    file_put_contents($localStorage . '/' . $imagery->getImageName(), $body);
                 }
-                else {
-                    $output->writeln(' OK. '.$result['filesize'].' bytes.');
-                    $this->dm->persist($imagery);
-                    $imagery->setDownloadDate(new \MongoDate());
-                    $imagery->setStored(true);
-                    $imagery->setStorage($result['ObjectURL']);
-                    $imagery->setFileSize($result['filesize']);
-                    $this->dm->flush();
-                }
-            } catch (\Exception $ex) {
+
+                $result = $this->S3Client->putObject(array(
+                    'ACL' => 'public-read',
+                    'Body' => $body,
+                    'Bucket' => self::S3_BUCKET,
+                    'ContentLength' => strlen($body),
+                    'Key' => $key,
+                    'Metadata' => array(
+                        'originaldate' => $imagery->getOriginalDate(),
+                    ),
+                ));
+                $imagery->setFileSize($result['filesize']);
+                $imagery->setDownloadDate(new \MongoDate());
+                $imagery->setStored(true);
+                $imagery->setStorage($result['ObjectURL']);
+                $output->writeln(' OK. ' . strlen($body) . ' bytes.');
+            } 
+            catch (\Exception $ex) {
                 $output->writeln('ERROR: ' . $ex->getMessage());
             }
-        }
+            $this->dm->flush();
+        } // end forach pendinf
 
         $this->dm->flush();
-
-
         $output->writeln('********************* END *******************************');
     }
 
-    function curl_get_file_contents($URL) {
+    
+    
+    /**
+     * Downloads remote file using cURL
+     * @param type $URL
+     * @return boolean|int
+     */
+    private function curl_get_file_contents($URL) {
         $c = curl_init();
         curl_setopt($c, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($c, CURLOPT_URL, $URL);
@@ -145,76 +219,18 @@ class DownloadCommand extends ContainerAwareCommand {
         curl_close($c);
 
         if ($contents) {
+
+            if (StringHelper::contains($contents, '404 Not Found')) {
+                return 404;
+            }
             return $contents;
         } else {
             return FALSE;
         }
     }
 
-    /**
-     * 
-     * @param Imagery $imagery
-     * @return type
-     * @throws Exception
-     */
-    private function putRemote(Imagery $imagery, $localStorage = null) {
-
-        try {
-            $key = self::S3_FOLDER . '/' . $imagery->getImageName();
-            $URL=self::GOES_BASE . self::GOES_FOLDER . $imagery->getImageName();
-            $body = $this->curl_get_file_contents($URL);
-
-            if($body===FALSE) {
-                throw new \Exception('ERROR: Falla al descargar de URL ' . $URL);
-            }
-            
-            if ($localStorage != null) {
-                file_put_contents($localStorage . '/' . $imagery->getImageName(), $body);
-            }
-            $result = $this->S3Client->putObject(array(
-                'ACL' => 'public-read',
-                'Body' => $body,
-                'Bucket' => self::S3_BUCKET,
-                'ContentLength' => strlen($body),
-                'Key' => $key,
-                'Metadata' => array(
-                    'originaldate' => $imagery->getOriginalDate(),
-                ),
-            ));
-            $result['filesize']=  strlen($body);
-        } 
-        catch (\Exception $e) {
-            throw new \Exception('ERROR: Falla al subir archivo ' . $imagery->getImageName() . '=> ' . $e->getMessage());
-        }
-        
-        return $result;
-    }
-
-    /**
-     * Persists for later download (queue) verifying we do not already have the same file in the db
-     * @return array with results
-     */
-    private function persistNewFiles() {
-        $stored = [];
-        $skipped = [];
-        foreach ($this->validFiles as $validFile) {
-            /* @var $imagery Imagery */
-            $imagery = $this->dm->getRepository('AppBundle:Imagery')->getByFilenameAndDate($validFile->file, $validFile->date);
-            if ($imagery == null) {
-                $stored[] = $validFile;
-                $im = new Imagery();
-                $im->setDated($validFile->date);
-                $im->setImageName($validFile->file);
-                $im->setOriginalDate($validFile->dateoriginal);
-                $this->dm->persist($im);
-            } else {
-                $skipped[] = $validFile;
-            }
-        }
-        $this->dm->flush();
-        return array('stored' => $stored, 'skipped' => $skipped);
-    }
-
+    
+    
     /**
      * Parses the file info from the TRs on the GOES listing table
      * @param DOMElementlist $tds

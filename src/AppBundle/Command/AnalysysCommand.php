@@ -7,6 +7,7 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use AppBundle\Document\Imagery,
+    AppBundle\Document\Analysys,
     AppBundle\Helper\StringHelper;
 use Aws\S3\S3Client;
 use GuzzleHttp\Client;
@@ -86,55 +87,74 @@ class AnalysysCommand extends ContainerAwareCommand {
 
 
         $output->writeln('INFO: Performing brightness analysis.');
+        $sampleo=[];
+        
         /* @var $imagery Imagery */
         foreach ($pending as $imagery) {
-            
-
             // load the image
             $image = $this->getImagickFromDocument($imagery, $localStorage);
 
             // get array for brighntesses
             $width = $image->getImageWidth();
-            $height = $image->getimageheight();
+            $height = $image->getImageHeight();
 
-            $output->writeln('INFO: File ' . $imagery->getImageName(). "width: {$width} height: {$height}");
-            
-            for($x=0; $x<$width; $x++) {
-                for($y=0; $y<$height; $y++) {
-            
-                    /* @var $pixel \ImagickPixel */
-                    $pixel = $image->getImagePixelColor($x, $y); 
-                    $colors = $pixel->getColor(); 
-                    $output->writeln(json_encode($colors));
-                }
-            }
+            //$output->writeln('INFO: File ' . $imagery->getImageName() . "width: {$width} height: {$height}");
+            $pixel = $image->getImagePixelColor(512, 331);
+            $data = $this->formatPixelValues($pixel);
+            $rgb=(65536 * $data['colors']['r'] + 256 * $data['colors']['g'] + $data['colors']['b']);
+            $sampleo[]=$rgb;
+            //$output->writeln('INFO: File ' . $imagery->getImageName() . "val: {$rgb}");
+            $output->writeln($rgb);
+
+//            for ($x = 0; $x < $width; $x++) {
+//                for ($y = 0; $y < $height; $y++) {
+//                    /* @var $pixel \ImagickPixel */
+//                    $pixel = $image->getImagePixelColor($x, $y);
+//                    $data = $this->formatPixelValues($pixel);
+//                    $a = new Analysys();
+//                    $a->setImagery($imagery);
+//                    $a->setPxred($data['colors']['r']);
+//                    $a->setPxgreen($data['colors']['g']);
+//                    $a->setPxblue($data['colors']['b']);
+//                    $a->setAlpha($data['colors']['a']);
+//                    $a->setPxrednormal($data['red']);
+//                    $a->setPxgreennormal($data['green']);
+//                    $a->setPxbluenormal($data['blue']);
+//                    $a->setPxcyan($data['cyan']);
+//                    $a->setPxmagenta($data['magenta']);
+//                    $a->setPxyellow($data['yellow']);
+//                    $a->setPxblack($data['black']);
+//                    $a->setPxtotal(65536 * $data['colors']['r'] + 256 * $data['colors']['g'] + $data['colors']['b']);
+//                    $a->setPixelx($x);
+//                    $a->setPixely($y);
+//                    
+//                    if($x==512 && $y==331) {
+//                        $sampleo[]=$a->getPxtotal();
+//                    }
+//                    
+//                    //$this->dm->persist($a);
+//                }
+//                $output->write(" {$x}");
+//            }
+//            //$imagery->setAnalyzed(true);
+//            $this->dm->flush();
         }
-
-
+        //$this->dm->flush();
+        $output->writeln(json_encode($sampleo));
         $output->writeln('********************* END *******************************');
     }
 
-    
-    
-    
-    private function getColorStatistics($histogramElements, $colorChannel) {
-        $colorStatistics = [];
-
-        foreach ($histogramElements as $histogramElement) {
-            $color = $histogramElement->getColorValue($colorChannel);
-            $color = intval($color * 255);
-            $count = $histogramElement->getColorCount();
-
-            if (array_key_exists($color, $colorStatistics)) {
-                $colorStatistics[$color] += $count;
-            } else {
-                $colorStatistics[$color] = $count;
-            }
-        }
-
-        ksort($colorStatistics);
-
-        return $colorStatistics;
+    private function formatPixelValues(\ImagickPixel $pixel) {
+        $ret = [];
+        $ret['colors'] = $pixel->getColor();
+        $ret['red'] = $pixel->getColorValue(Imagick::COLOR_RED);
+        $ret['green'] = $pixel->getColorValue(Imagick::COLOR_GREEN);
+        $ret['blue'] = $pixel->getColorValue(Imagick::COLOR_BLUE);
+        $ret['cyan'] = $pixel->getColorValue(Imagick::COLOR_CYAN);
+        $ret['magenta'] = $pixel->getColorValue(Imagick::COLOR_MAGENTA);
+        $ret['yellow'] = $pixel->getColorValue(Imagick::COLOR_YELLOW);
+        $ret['black'] = $pixel->getColorValue(Imagick::COLOR_BLACK);
+        return $ret;
     }
 
     /**
