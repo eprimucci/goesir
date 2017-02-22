@@ -144,11 +144,21 @@ class DownloadCommand extends ContainerAwareCommand {
         
         
         
+        
+        $loop=0;
+        $downloadLimit=$this->getContainer()->getParameter('download.limit');
+        
+        
         /*********************************
          *      LOOP THRU PENDING
          *********************************/
         /* @var $imagery Imagery */
         foreach ($pending as $imagery) {
+            
+            if($loop>$downloadLimit) {
+                $output->writeln("INFO: {$downloadLimit} files processed. Breaking.");
+                break;
+            }
 
             $this->dm->persist($imagery);
 
@@ -165,16 +175,16 @@ class DownloadCommand extends ContainerAwareCommand {
             }
             if ($body === 404) {
                 // remove this, not found
-                $this->dm->remove($imagery);
+                $imagery->setAvoid(TRUE);
                 $this->dm->flush($imagery);
-                $output->writeln('ERROR: file not found. Removing.');
+                $output->writeln('ERROR: file not found. Skipping.');
                 continue;
             }
             if (strlen($body) < 100000) {
                 // remove this, file truncated
-                $this->dm->remove($imagery);
+                $imagery->setAvoid(TRUE);
                 $this->dm->flush($imagery);
-                $output->writeln('ERROR: file too small. Removing.');
+                $output->writeln('ERROR: file too small. Skipping.');
                 continue;
             }
 
@@ -200,6 +210,7 @@ class DownloadCommand extends ContainerAwareCommand {
                 $imagery->setStored(true);
                 $imagery->setStorage($result['ObjectURL']);
                 $output->writeln(' OK. ' . strlen($body) . ' bytes.');
+                $loop++;
             } 
             catch (\Exception $ex) {
                 $output->writeln('ERROR: ' . $ex->getMessage());

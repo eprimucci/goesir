@@ -75,6 +75,13 @@ class Imagery {
      */
     private $analyzed;
     
+    
+    /**
+     * @ODM\Boolean
+     * @ODM\Index(name="imagery_avoid")
+     */
+    private $avoid;
+
 
     /**
      * 
@@ -87,8 +94,8 @@ class Imagery {
     function __construct() {
         $this->stored=false;
         $this->analyzed=false;
+        $this->avoid=false;
     }
-    
     
     public function getId() {
         return $this->id;
@@ -124,6 +131,10 @@ class Imagery {
 
     public function getAnalyzed() {
         return $this->analyzed;
+    }
+
+    public function getAvoid() {
+        return $this->avoid;
     }
 
     public function getFileSize() {
@@ -175,12 +186,17 @@ class Imagery {
         return $this;
     }
 
+    public function setAvoid($avoid) {
+        $this->avoid = $avoid;
+        return $this;
+    }
+
     public function setFileSize($fileSize) {
         $this->fileSize = $fileSize;
         return $this;
     }
 
-    
-    
+
+
         
 }

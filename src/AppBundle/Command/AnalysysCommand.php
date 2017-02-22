@@ -191,7 +191,7 @@ class AnalysysCommand extends ContainerAwareCommand {
                 $image = new \Imagick();
                 $image->readImageBlob($result['Body']);
             } catch (\Exception $e) {
-                throw new \Exception('ERROR: Unable to crerate Imagick object frpm S3 bucket key ' . $key . '=> ' . $e->getMessage());
+                throw new \Exception('ERROR: Unable to crerate Imagick object frpm S3 bucket key ' . self::S3_FOLDER . '/' . $imagery->getImageName() . '=> ' . $e->getMessage());
             }
         }
 

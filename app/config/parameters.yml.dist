@@ -16,7 +16,11 @@ parameters:
     amazon_s3.secret: s3secret
     amazon_s3.region: us-east-1
     amazon_s3.media_bucket: goesir
+    
+    #downloads
+    download.limit: 10
+
 
     # Assets
     assets.version: v5
-    assets.baseurl: https://arcane-cliffs-65402.herokuapp.com
+    assets.baseurl: https://sarlanga-tarufetti-52544.herokuapp.com

@@ -15,6 +15,7 @@ class ImageryRepository extends BaseRepository {
     public function getDownloadPending() {
         $qb = $this->createQueryBuilder();
         $qb->field('stored')->equals(false);
+        $qb->field('avoid')->equals(false);
         return $qb->getQuery()->execute();
     }
     
