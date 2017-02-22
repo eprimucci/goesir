@@ -24,6 +24,7 @@ class ImageryRepository extends BaseRepository {
                 ->select('id','sdated','image_name','dated')
                 ->field('stored')->equals(true)
                 ->field('analyzed')->equals(false)
+                ->field('avoid')->equals(false)
                 ->sort('sdated');
         return $qb->getQuery()->execute();
     }

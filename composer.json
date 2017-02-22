@@ -1,5 +1,5 @@
 {
-    "name": "piri/goesir2",
+    "name": "piri/goesir",
     "license": "proprietary",
     "type": "project",
     "autoload": {
@@ -79,7 +79,8 @@
                 "amazon_s3.key": "AMAZON_KEY",
                 "amazon_s3.secret": "AMAZON_SECRET",
                 "amazon_s3.region": "AMAZON_REGION",
-                "amazon_s3.media_bucket": "AMAZON_MEDIABUCKET"
+                "amazon_s3.media_bucket": "AMAZON_MEDIABUCKET",
+                "download.limit": "DOWNLOAD_LIMIT"
             }
 
         },
