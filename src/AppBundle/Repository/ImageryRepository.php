@@ -12,14 +12,14 @@ class ImageryRepository extends BaseRepository {
     }
     
     
-    public function getDownloadPending() {
+    public function findByDownloadPending() {
         $qb = $this->createQueryBuilder();
         $qb->field('stored')->equals(false);
         $qb->field('avoid')->equals(false);
         return $qb->getQuery()->execute();
     }
     
-    public function getAnalysysPending() {
+    public function findByAnalysysPending() {
         $qb = $this->createQueryBuilder()
                 ->select('id','sdated','image_name','dated')
                 ->field('stored')->equals(true)

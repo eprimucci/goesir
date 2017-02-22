@@ -108,7 +108,7 @@ class DownloadCommand extends ContainerAwareCommand {
         $skipped = [];
         foreach ($this->validFiles as $validFile) {
             /* @var $imagery Imagery */
-            $imagery = $this->dm->getRepository('AppBundle:Imagery')->getByFilenameAndDate($validFile->file, $validFile->date);
+            $imagery = $this->dm->getRepository('AppBundle:Imagery')->findByFilenameAndDate($validFile->file, $validFile->date);
             if ($imagery == null) {
                 $im = new Imagery();
                 $im->setDated($validFile->date);
@@ -131,7 +131,7 @@ class DownloadCommand extends ContainerAwareCommand {
 
 
         // now download the pending ones and store them in amazon
-        $pending = $this->dm->getRepository('AppBundle:Imagery')->getDownloadPending();
+        $pending = $this->dm->getRepository('AppBundle:Imagery')->findByDownloadPending();
 
         $output->writeln('INFO: Download pending files: ');
 

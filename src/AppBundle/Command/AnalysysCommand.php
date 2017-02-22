@@ -95,7 +95,7 @@ class AnalysysCommand extends ContainerAwareCommand {
             return;
         }
 
-        $pixel = $this->dm->getRepository('AppBundle:Pixel')->getByCoordinates($coordX, $coordY);
+        $pixel = $this->dm->getRepository('AppBundle:Pixel')->findByCoordinates($coordX, $coordY);
         if ($pixel == null) {
             $pixel = new Pixel();
             $pixel->setPixelx($coordX);
@@ -105,7 +105,7 @@ class AnalysysCommand extends ContainerAwareCommand {
         }
 
         // get available images
-        $availableImagery = $this->dm->getRepository('AppBundle:Imagery')->getAnalysysPending();
+        $availableImagery = $this->dm->getRepository('AppBundle:Imagery')->findByAnalysysPending();
 
         $output->writeln("INFO: Performing brightness analysis for {$coordX},{$coordY}");
 
